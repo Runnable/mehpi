@@ -24,12 +24,12 @@ describe('functional tests', () => {
 
   // Setup some route stubs for the API
   beforeEach(() => {
-    github.stub('GET /users/rsandor').returns(200)
-    github.stub('GET /repos/rsandor/solace/comments').returns({
+    github.stub('GET', '/users/rsandor').returns(200)
+    github.stub('GET', '/repos/rsandor/solace/comments').returns({
       status: 500,
       body: 'Internal Server Error'
     })
-    github.stub('POST /gists')
+    github.stub('POST', '/gists')
       .onFirstCall().returns(500)
       .onSecondCall().returns(200)
   })
