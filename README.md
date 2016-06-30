@@ -19,8 +19,8 @@ describe('functional tests', () => {
   const github = new MockAPI('5678')
 
   // Start the API before all tests, stop it when we're done
-  before(github.start)
-  after(github.stop)
+  before((done) => github.start(done))
+  after((done) => github.stop(done))
 
   // Setup some route stubs for the API
   beforeEach(() => {
