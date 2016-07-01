@@ -38,6 +38,7 @@ module.exports = class MockAPI {
         debug(`Failed to start server (port: ${this.port})`)
         debug(err.message)
         done(err)
+        return
       }
       debug(`Server listening (port: ${this.port})`)
       done()

@@ -11,12 +11,29 @@ const PORT = 13571
 describe('MockAPI', () => {
   const api = Promise.promisifyAll(new MockAPI(PORT))
 
-  describe('start/stop', () => {
+  describe('start', () => {
     it('should start a mock HTTP server', () => {
       return api.startAsync()
         .then(() => request.getAsync(`http://localhost:${PORT}`))
         .then((response) => assert.equal(response.statusCode, 200))
         .then(() => api.stopAsync())
+    })
+
+    it('should accept an empty callback', () => {
+      sinon.stub(api.server, 'listen')
+      api.start()
+      sinon.assert.calledOnce(api.server.listen)
+      api.server.listen.restore()
+    })
+
+    it('should fail on error when starting the server', (done) => {
+      const listenError = new Error('woah there...')
+      sinon.stub(api.server, 'listen').yieldsAsync(listenError)
+      api.start((err) => {
+        assert.equal(err, listenError)
+        api.server.listen.restore()
+        done()
+      })
     })
   }) // end 'start'
 
