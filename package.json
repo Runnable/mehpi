@@ -4,7 +4,13 @@
   "description": "Simple External API Mocking via Sinon",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "check-coverage": "istanbul check-coverage && echo 'Coverage check successful!'",
+    "coverage": "NODE_ENV=test NODE_PATH=./lib istanbul cover ./node_modules/mocha/bin/_mocha -- $npm_package_options_mocha test/ && npm run check-coverage",
+    "test": "NODE_ENV=test NODE_PATH=./lib mocha $npm_package_options_mocha test/",
+    "lint": "standard --verbose | snazzy"
+  },
+  "options": {
+    "mocha": "--timeout 1000 --bail --recursive --reporter spec"
   },
   "repository": {
     "type": "git",
@@ -20,5 +26,21 @@
   "bugs": {
     "url": "https://github.com/Runnable/mehpi/issues"
   },
-  "homepage": "https://github.com/Runnable/mehpi#readme"
+  "homepage": "https://github.com/Runnable/mehpi#readme",
+  "dependencies": {
+    "101": "^1.6.0",
+    "bluebird": "^3.4.1",
+    "debug": "^2.2.0",
+    "sinon": "^1.17.4"
+  },
+  "devDependencies": {
+    "bluebird": "^3.4.1",
+    "chai": "^3.5.0",
+    "code": "^3.0.1",
+    "istanbul": "^0.4.4",
+    "lab": "^10.8.2",
+    "mocha": "^2.5.3",
+    "request": "^2.72.0",
+    "standard": "^7.1.2"
+  }
 }

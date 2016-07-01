@@ -6,7 +6,7 @@ So why another testing utility library for mocking HTTP servers? Because:
 
 1. We love [sinon](https://npmjs.com/package/sinon)
 2. We wanted to love functional tests, but [nock](https://npmjs.com/package/nock) was unideal
-3. We thought, "Hey wouldn't it be cool if we could mock apis with sinon?"
+3. We thought, "Hey wouldn't it be cool if we could mock APIs with sinon?"
 
 ## Example
 ```js
@@ -19,17 +19,17 @@ describe('functional tests', () => {
   const github = new MockAPI('5678')
 
   // Start the API before all tests, stop it when we're done
-  before(github.start)
-  after(github.stop)
+  before((done) => github.start(done))
+  after((done) => github.stop(done))
 
   // Setup some route stubs for the API
   beforeEach(() => {
-    github.stub('GET /users/:username').returns(200)
-    github.stub('GET /repos/:owner/:repo/comments').returns({
+    github.stub('GET', '/users/rsandor').returns(200)
+    github.stub('GET', '/repos/rsandor/solace/comments').returns({
       status: 500,
       body: 'Internal Server Error'
     })
-    github.stub('POST /gists')
+    github.stub('POST', '/gists')
       .onFirstCall().returns(500)
       .onSecondCall().returns(200)
   })
@@ -61,13 +61,11 @@ Starts the server, then calls the `done` callback.
 ### `.stop([done])`
 Stops the server. If defined, calls the `done` callback.
 
-### `.stub(route, [handler])`
-Creates and returns the sinon stub for the given `route` string. Optionally one
-can define a custom handler for that route via the `handler` argument.
+### `.stub(method, path)`
+Creates and returns a sinon stub for the given HTTP method and path.
 
 ### `.restore([route])`
-When called with no arguments, this restores all route stubs on the mocked server.
-When called with a `route` string, this restores only the specified route stub.
+Restores all route stubs on the mocked server.
 
 ## License
 MIT
