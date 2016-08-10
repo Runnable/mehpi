@@ -83,7 +83,7 @@ module.exports = class MockAPI {
       if (isNumber(result.status)) {
         status = result.status
       }
-      if (isObject(result.body)) {
+      if (isObject(result.body) || Array.isArray(result.body)) {
         contentType = 'application/json'
         body = JSON.stringify(result.body)
       } else if (result.body) {
