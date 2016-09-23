@@ -5,9 +5,14 @@ const isFunction = require('101/is-function')
 const isNumber = require('101/is-number')
 const isObject = require('101/is-object')
 const isString = require('101/is-string')
+const isRegExp = require('101/is-regexp')
+const keypather = require('keypather')()
 const noop = require('101/noop')
 const sinon = require('sinon')
 const debug = require('debug')('mehpi')
+
+const PRIORITY_LIMIT = 100
+const PRIORITY_DEFAULT = 10
 
 /**
  * Mock API server. Allows one to mock any api and setup stubs for particlar
@@ -23,6 +28,12 @@ module.exports = class MockAPI {
     this.port = port
     this.restore()
     this.server = http.createServer(this._handler.bind(this))
+    this.routeStubs = {
+      'text': {},
+      'regex': []
+    }
+    // Have the mock always return a 200 on index
+    this.setStub('GET', '/')
   }
 
   /**
@@ -66,7 +77,10 @@ module.exports = class MockAPI {
   _handler (request, response) {
     const method = request.method
     const path = request.url
-    const routeStub = this.stub(method, path)
+    const routeStub = this.getStub(method, path)
+    if (!routeStub) {
+      return this.stubNotFound(response)
+    }
     const result = routeStub(request, response)
 
     debug(`Request: ${method} ${path}`)
@@ -97,12 +111,7 @@ module.exports = class MockAPI {
     response.end(body)
   }
 
-  /**
-   * Returns the stub method for a route on the server.
-   * @param {string} [method] HTTP Method for the request stub (ex: PUT, POST).
-   * @param {string} path Path to stub (ex: /users/me)
-   */
-  stub (method, path) {
+  getStub (method, path) {
     if (!path) {
       path = method
       method = 'GET'
@@ -110,16 +119,86 @@ module.exports = class MockAPI {
     method = method.toUpperCase()
 
     const key = `${method} ${path}`
-    if (!this.routeStubs[key]) {
-      this.routeStubs[key] = sinon.stub()
+    let textStub = keypather.get(this.routeStubs.text, key)
+    if (textStub) {
+      return textStub
     }
-    return this.routeStubs[key]
+    // Check all regular expressions
+    for (var i = PRIORITY_LIMIT; i >= 0; i -= 1) {
+      if (Array.isArray(this.routeStubs.regex[i])) {
+        for (let entry of this.routeStubs.regex[i]) {
+          if (path.match(entry.regex)) {
+            return entry.stub
+          }
+        }
+      }
+    }
+    return null
+  }
+
+  /**
+   * Returns the stub method for a route on the server.
+   * @param {string} [method] HTTP Method for the request stub (ex: PUT, POST).
+   * @param {string} path Path to stub (ex: /users/me)
+   */
+  setStub (method, path, priority) {
+    if (!path) {
+      path = method
+      method = 'GET'
+    }
+    method = method.toUpperCase()
+
+    if (isString(path)) {
+      const key = `${method} ${path}`
+      let textStub = keypather.get(this.routeStubs, `text.${method}.${path}`)
+      if (!textStub) {
+        this.routeStubs.text[key] = sinon.stub()
+        // throw new Error('Stub already declared')
+      }
+      return this.routeStubs.text[key]
+    }
+    if (isRegExp(path)) {
+      if (priority > PRIORITY_LIMIT) {
+        throw new Error(`'priority' must be under ${PRIORITY_LIMIT}`)
+      }
+      if (priority === undefined) {
+        priority = PRIORITY_DEFAULT
+      }
+      if (!isNumber(priority)) {
+        throw new Error('\'priority\' is not a number')
+      }
+      let newStub = sinon.stub()
+      if (!this.routeStubs.regex[priority]) {
+        this.routeStubs.regex[priority] = []
+      }
+      this.routeStubs.regex[priority].push({
+        regex: path,
+        stub: newStub
+      })
+      return newStub
+    }
+    throw new Error('Only regular expressions and strings allowed')
+  }
+
+  stub () {
+    return this.setStub.apply(this, arguments)
+  }
+
+  stubNotFound (response) {
+    let status = 500
+    let body = 'The requested route has not been declared.'
+    let contentType = 'text/plain'
+    response.writeHead(status, { 'Content-Type': contentType })
+    response.end(body)
   }
 
   /**
    * Restores all stubbed routes on the mock api server.
    */
   restore () {
-    this.routeStubs = {}
+    this.routeStubs = {
+      'text': {},
+      'regex': []
+    }
   }
 }
