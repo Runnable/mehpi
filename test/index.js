@@ -45,7 +45,7 @@ describe('MockAPI', () => {
     it('should stub basic routes', () => {
       api.stub('GET', '/bent');
       return request.getAsync(`http://localhost:${PORT}/bent`)
-        .then(() => sinon.assert.calledOnce(api.stub('GET', '/bent')))
+        .then(() => sinon.assert.calledOnce(api.getStub('GET', '/bent')))
     })
 
     it('should correctly stub status code', () => {
@@ -94,6 +94,74 @@ describe('MockAPI', () => {
           assert.deepEqual(JSON.parse(response.body), stubResponse.body)
         })
     })
+
+    describe('Regular Expressions', () => {
+
+      const status = 200
+      let body
+      beforeEach(() => {
+        body = { hello: 'world' }
+      })
+
+      describe('Basic', () => {
+        beforeEach(() => {
+          const stubResponse = {
+            status: 200,
+            body: body
+          }
+          api.stub('GET', /[A-z]+/i).returns(stubResponse)
+        })
+
+        it('should return the right response if it matches the regular expression', () => {
+          return request.getAsync(`http://localhost:${PORT}/aaaa`)
+            .then((response) => {
+              assert.equal(response.statusCode, status)
+              assert.deepEqual(JSON.parse(response.body), body)
+            })
+        })
+
+        it('should return not return any response if not matches are found', () => {
+          return request.getAsync(`http://localhost:${PORT}/111`)
+            .then((response) => {
+              assert.equal(response.statusCode, 500)
+            })
+        })
+      })
+
+      describe('Priorities', () => {
+        const status1 = status
+        const status2 = 404
+        let stubResponse1
+        let stubResponse2
+
+        beforeEach(() => {
+          stubResponse1 = {
+            status: status1
+          }
+          stubResponse2 = {
+            status: status2
+          }
+        })
+
+        it('should respect a higher priority', () => {
+          api.stub('GET', /[0-9]+/i, 0).returns(stubResponse1)
+          api.stub('GET', /[A-z]+/i, 1).returns(stubResponse2)
+          return request.getAsync(`http://localhost:${PORT}/aa11`)
+            .then((response) => {
+              assert.equal(response.statusCode, status2)
+            })
+        })
+
+        it('should respect order of declration if priority is the same', () => {
+          api.stub('GET', /[0-9]+/i, 1).returns(stubResponse1)
+          api.stub('GET', /[A-z]+/i, 1).returns(stubResponse2)
+          return request.getAsync(`http://localhost:${PORT}/aa11`)
+            .then((response) => {
+              assert.equal(response.statusCode, status1)
+            })
+        })
+      })
+    })
   }) // end 'stub'
 
   describe('restore', () => {
@@ -106,9 +174,9 @@ describe('MockAPI', () => {
       api.stub('PUT', '/things').returns(500) // (internal things error)
       api.restore()
       return request.getAsync(`http://localhost:${PORT}/stuff`)
-        .then((response) => assert.equal(response.statusCode, 200))
+        .then((response) => assert.equal(response.statusCode, 500))
         .then(() => request.putAsync(`http://localhost:${PORT}/things`))
-        .then((response) => assert.equal(response.statusCode, 200))
+        .then((response) => assert.equal(response.statusCode, 500))
     })
   }) // end 'restore'
 }) // end 'MockAPI'

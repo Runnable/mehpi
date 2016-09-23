@@ -10,7 +10,7 @@
     "lint": "standard --verbose | snazzy"
   },
   "options": {
-    "mocha": "--timeout 1000 --bail --recursive --reporter spec"
+    "mocha": "--timeout 1000 --recursive --reporter spec"
   },
   "repository": {
     "type": "git",
@@ -31,6 +31,7 @@
     "101": "^1.6.0",
     "bluebird": "^3.4.1",
     "debug": "^2.2.0",
+    "keypather": "^2.0.1",
     "sinon": "^1.17.4"
   },
   "devDependencies": {
