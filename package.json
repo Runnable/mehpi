@@ -21,6 +21,16 @@
     "mock",
     "http"
   ],
+  "standard": {
+    "globals": [
+      "describe",
+      "it",
+      "before",
+      "after",
+      "beforeEach",
+      "afterEach"
+    ]
+  },
   "author": "Ryan Sandor Richards <ryan@runnable.com> (http://www.runnable.com/)",
   "license": "MIT",
   "bugs": {

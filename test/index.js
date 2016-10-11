@@ -43,7 +43,7 @@ describe('MockAPI', () => {
     afterEach(() => api.restore())
 
     it('should stub basic routes', () => {
-      api.stub('GET', '/bent');
+      api.stub('GET', '/bent')
       return request.getAsync(`http://localhost:${PORT}/bent`)
         .then(() => sinon.assert.calledOnce(api.getStub('GET', '/bent')))
     })
@@ -159,6 +159,37 @@ describe('MockAPI', () => {
             .then((response) => {
               assert.equal(response.statusCode, status1)
             })
+        })
+      })
+    })
+
+    describe('Overwriting Stub', function () {
+      it('should overwrite a string stub if redefined', () => {
+        api.stub('GET', '/bent').returns({
+          status: 200,
+          body: 'hello'
+        })
+        api.stub('GET', '/bent').returns({
+          status: 200,
+          body: 'goodbye'
+        })
+        return request.getAsync(`http://localhost:${PORT}/bent`)
+        .then(res => {
+          assert.equal(res.body, 'goodbye')
+        })
+      })
+      it('should not overwrite a regex stub if redefined', () => {
+        api.stub('GET', /bent/).returns({
+          status: 200,
+          body: 'hello'
+        })
+        api.stub('GET', /bent/).returns({
+          status: 200,
+          body: 'goodbye'
+        })
+        return request.getAsync(`http://localhost:${PORT}/bent`)
+        .then(res => {
+          assert.equal(res.body, 'goodbye')
         })
       })
     })

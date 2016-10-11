@@ -9,7 +9,13 @@ const isRegExp = require('101/is-regexp')
 const keypather = require('keypather')()
 const noop = require('101/noop')
 const sinon = require('sinon')
-const debug = require('debug')('mehpi')
+const debug = require('debug')
+const debugInit = debug('mehpi:init')
+const debugInitError = debug('mehpi:init:error')
+const debugSetup = debug('mehpi:setup')
+const debugSetupError = debug('mehpi:setup:error')
+const debugRespone = debug('mehpi:response')
+const debugResponeError = debug('mehpi:response:error')
 
 const PRIORITY_LIMIT = 100
 const PRIORITY_DEFAULT = 10
@@ -46,12 +52,11 @@ module.exports = class MockAPI {
     }
     this.server.listen(this.port, (err) => {
       if (err) {
-        debug(`Failed to start server (port: ${this.port})`)
-        debug(err.message)
+        debugInitError(`Failed to start server (port: ${this.port}) / ${err.message}`)
         done(err)
         return
       }
-      debug(`Server listening (port: ${this.port})`)
+      debugInit(`Server listening (port: ${this.port})`)
       done()
     })
   }
@@ -65,7 +70,7 @@ module.exports = class MockAPI {
       done = noop
     }
     this.server.close((err) => {
-      debug(`Server stopped (port: ${this.port})`)
+      debugInit(`Server stopped (port: ${this.port})`)
       done(err)
     })
   }
@@ -83,7 +88,7 @@ module.exports = class MockAPI {
     }
     const result = routeStub(request, response)
 
-    debug(`Request: ${method} ${path}`)
+    debugRespone(`Request: ${method} ${path}`)
 
     let status = 200
     let body = 'response'
@@ -105,7 +110,7 @@ module.exports = class MockAPI {
       }
     }
 
-    debug(`Response: ${status} ${body} (${contentType})`)
+    debugRespone(`Response: ${status} ${body} (${contentType})`)
 
     response.writeHead(status, { 'Content-Type': contentType })
     response.end(body)
@@ -121,6 +126,7 @@ module.exports = class MockAPI {
     const key = `${method} ${path}`
     let textStub = keypather.get(this.routeStubs.text, key)
     if (textStub) {
+      debugRespone(`Found string match: ${method} ${path}`)
       return textStub
     }
     // Check all regular expressions
@@ -128,6 +134,7 @@ module.exports = class MockAPI {
       if (Array.isArray(this.routeStubs.regex[i])) {
         for (let entry of this.routeStubs.regex[i]) {
           if (path.match(entry.regex)) {
+            debugRespone(`Found regular expression: ${method} ${path} ${entry.regex}`)
             return entry.stub
           }
         }
@@ -155,6 +162,7 @@ module.exports = class MockAPI {
         this.routeStubs.text[key] = sinon.stub()
         // throw new Error('Stub already declared')
       }
+      debugSetup(`String stub added: ${path}`)
       return this.routeStubs.text[key]
     }
     if (isRegExp(path)) {
@@ -171,12 +179,25 @@ module.exports = class MockAPI {
       if (!this.routeStubs.regex[priority]) {
         this.routeStubs.regex[priority] = []
       }
+      // Replace same regex if found
+      let regexKeys = this.routeStubs.regex[priority].map(x => x.regex.toString())
+      if (regexKeys.indexOf(path.toString()) !== -1) {
+        let i = regexKeys.indexOf(path.toString())
+        this.routeStubs.regex[priority][i] = {
+          regex: path,
+          stub: newStub
+        }
+        debugSetup(`Regex stub replaced: ${path}`)
+        return newStub
+      }
       this.routeStubs.regex[priority].push({
         regex: path,
         stub: newStub
       })
+      debugSetup(`Regex stub added: ${path}`)
       return newStub
     }
+    debugSetupError('Only strings and regexs allowed')
     throw new Error('Only regular expressions and strings allowed')
   }
 
@@ -188,6 +209,7 @@ module.exports = class MockAPI {
     let status = 500
     let body = 'The requested route has not been declared.'
     let contentType = 'text/plain'
+    debugResponeError('No Stub Found')
     response.writeHead(status, { 'Content-Type': contentType })
     response.end(body)
   }
